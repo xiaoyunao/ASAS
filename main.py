@@ -780,7 +780,8 @@ class HistoryManager:
 
         save_path = self.history_dir / f"{obs_date}_exposure_history.fits"
         if save_path.exists() and not force:
-            raise FileExistsError(f"History file already exists for date {obs_date}: {save_path}. Use force=True to overwrite.")
+            print(f"[INFO] History file {save_path} already existed. Skipping update.")
+            return
 
         # Load previous history (not current day's!) or initialize
         self._table = self._load_or_initialize_history()
