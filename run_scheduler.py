@@ -14,6 +14,8 @@ def parse_args():
 
     parser.add_argument("--date", type=str, required=True,
                         help="Date in YYYY-MM-DD format (e.g., 2025-07-13)")
+    parser.add_argument("--date-obs", type=str, required=True,
+                        help="Date in YYYY-MM-DD format (e.g., 2025-07-12)")
     parser.add_argument("--lat", type=float, default=40.393,
                         help="Observatory latitude in degrees (default: 40.393)")
     parser.add_argument("--lon", type=float, default=117.575,
@@ -40,7 +42,9 @@ def main():
 
     night = datetime.strptime(args.date, "%Y-%m-%d").date()
     obs_date_str = night.strftime("%Y%m%d")
-    obs_dir = Path(args.processed_root) / obs_date_str / "L1"
+    last_night = datetime.strptime(args.date_obs, "%Y-%m-%d").date()
+    last_obs_date_str = last_night.strftime("%Y%m%d")
+    obs_dir = Path(args.processed_root) / last_obs_date_str / "L1"
 
     site = EarthLocation(lat=args.lat * u.deg, lon=args.lon * u.deg, height=args.height * u.m)
 
@@ -52,7 +56,7 @@ def main():
                                       initialize_only=args.initialize_only,
                                       force=args.force)
 
-    history_path = Path(args.history_dir) / f"{obs_date_str}_exposure_history.fits"
+    history_path = Path(args.history_dir) / f"{last_obs_date_str}_exposure_history.fits"
     if not history_path.exists():
         raise FileNotFoundError(f"Expected history file not found: {history_path}")
     
