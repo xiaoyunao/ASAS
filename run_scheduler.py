@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 from astropy.coordinates import EarthLocation
@@ -9,13 +10,13 @@ from main import Scheduler, HistoryManager
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="astropy")
 
+OBJ_PATTERN = re.compile(r"OBJ_SV(\d{5})_\d{4}\.fits\.gz$")
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run scheduling campaign.")
 
     parser.add_argument("--date", type=str, required=True,
                         help="Date in YYYY-MM-DD format (e.g., 2025-07-13)")
-    parser.add_argument("--date-obs", type=str, required=True,
-                        help="Date in YYYY-MM-DD format (e.g., 2025-07-12)")
     parser.add_argument("--lat", type=float, default=40.393,
                         help="Observatory latitude in degrees (default: 40.393)")
     parser.add_argument("--lon", type=float, default=117.575,
@@ -37,13 +38,39 @@ def parse_args():
 
     return parser.parse_args()
 
+def find_latest_observation_date(root: Path, before_date: datetime.date) -> str | None:
+    date_dirs = []
+    for subdir in root.iterdir():
+        if subdir.is_dir() and subdir.name.isdigit() and len(subdir.name) == 8:
+            try:
+                date = datetime.strptime(subdir.name, "%Y%m%d").date()
+                if date < before_date:
+                    date_dirs.append((date, subdir))
+            except ValueError:
+                continue
+
+    for date, d in sorted(date_dirs, key=lambda x: x[0], reverse=True):
+        l1_dir = d / "L1"
+        if not l1_dir.exists():
+            continue
+        for file in l1_dir.glob("*.fits.gz"):
+            if OBJ_PATTERN.match(file.name):
+                return date.strftime("%Y-%m-%d")
+
+    print("[INFO] No previous observation directory with matching files found.")
+    return None
+
+
 def main():
     args = parse_args()
 
     night = datetime.strptime(args.date, "%Y-%m-%d").date()
     obs_date_str = night.strftime("%Y%m%d")
-    last_night = datetime.strptime(args.date_obs, "%Y-%m-%d").date()
-    last_obs_date_str = last_night.strftime("%Y%m%d")
+    last_obs_date_str = find_latest_observation_date(Path(args.processed_root), night).replace("-", "")
+    
+    if last_obs_date_str is None:
+        last_obs_date_str = obs_date_str  # Fallback to today if no previous date found
+        
     obs_dir = Path(args.processed_root) / last_obs_date_str / "L1"
 
     site = EarthLocation(lat=args.lat * u.deg, lon=args.lon * u.deg, height=args.height * u.m)
