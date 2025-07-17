@@ -77,8 +77,8 @@ class Config:
 def default_config():
     return Config(
         exposure_time=30.0,
-        slew_speed_ra=0.4,
-        slew_speed_dec=0.4,
+        slew_speed_ra=0.2,
+        slew_speed_dec=0.2,
         airmass_max=2.0,
         revisit_interval=1800.0,
         w_visible_nights=2.0,
@@ -119,7 +119,7 @@ def slew_sec(a: SkyCoord, b: SkyCoord, cfg: Config) -> float:
     dec_sep = abs((a.dec - b.dec).to(u.deg).value) / cfg.slew_speed_dec
 
     # Total slew time is the maximum of RA and Dec slew times (serial movement)
-    total_sep = max(ra_sep, dec_sep)
+    total_sep = max(ra_sep, dec_sep) + 10.0
 
     # Enforce a minimum slew overhead time (e.g., CCD readout, settling)
     return max(10.0, total_sep)
