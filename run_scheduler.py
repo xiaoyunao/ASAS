@@ -66,10 +66,12 @@ def main():
 
     night = datetime.strptime(args.date, "%Y-%m-%d").date()
     obs_date_str = night.strftime("%Y%m%d")
-    last_obs_date_str = find_latest_observation_date(Path(args.processed_root), night).replace("-", "")
+    last_obs_date_str = find_latest_observation_date(Path(args.processed_root), night)
     
     if last_obs_date_str is None:
         last_obs_date_str = obs_date_str  # Fallback to today if no previous date found
+    else:
+        last_obs_date_str = last_obs_date_str.replace("-", "")
         
     obs_dir = Path(args.processed_root) / last_obs_date_str / "L1"
 
