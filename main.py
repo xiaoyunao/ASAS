@@ -417,8 +417,15 @@ class Scheduler:
         for t in times:
             # Compute altitude and apply airmass threshold
             altaz = self.coords.transform_to(AltAz(obstime=t, location=self.site))
-            alt, airmass = altaz.alt, altaz.secz
-            alt_ok = (alt > 0 * u.deg) & (airmass <= self.cfg.airmass_max)
+            alt = altaz.alt
+            h = np.array(alt.to_value(u.deg), dtype=np.float64)
+            correction = 244.0 / (165.0 + 47.0 * h**1.1)
+            denom = np.sin(np.radians(h + correction))
+            with np.errstate(divide='ignore', invalid='ignore'):
+                airmass = 1.0 / denom
+                airmass[h <= 0] = np.inf
+
+            alt_ok = (alt > 10 * u.deg) & (airmass <= self.cfg.airmass_max)
 
             # Moon position and illumination phase for exclusion zone calculation
             moon_pos = get_body("moon", t, location=self.site)
